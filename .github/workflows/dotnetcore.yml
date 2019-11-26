@@ -3,15 +3,19 @@ name: .NET Core
 on: [push]
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
+  build_and_test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
     steps:
     - uses: actions/checkout@v1
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 2.2.108
+      if: matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-latest'
     - name: Build with dotnet
-      run: dotnet build --configuration Release
+      run: dotnet build websocket-sharper.sln --configuration Release
+    - name: Test with dotnet
+      run: dotnet test websocket-sharper.sln --configuration Release
