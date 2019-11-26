@@ -11,9 +11,9 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Setup .NET Core
-      uses: actions/setup-dotnet@v1
+      uses: actions/setup-dotnet@v1.2.0
       with:
-        dotnet-version: 2.2.108
+        dotnet-version: 2.2.207
       if: matrix.os == 'macOS-latest' || matrix.os == 'ubuntu-latest'
     - name: Build with dotnet
       run: dotnet build websocket-sharper.sln --configuration Release
