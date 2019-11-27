@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="cid.pfx">
+    <None Update="client.pfx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

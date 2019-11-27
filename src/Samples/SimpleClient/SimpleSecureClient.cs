@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
@@ -44,15 +45,16 @@ namespace SimpleClient
 
             m_client = new WebSocket(m_logger, "wss://localhost:8855/chat");
             m_client.SslConfiguration.ClientCertificates = new X509CertificateCollection();
-            var localCert = new X509Certificate2("cid.pfx", "securepassword");
+            var localCert = new X509Certificate2("client.pfx", "password");
             m_client.SslConfiguration.ClientCertificates.Add(localCert);
             m_client.SslConfiguration.ClientCertificateSelectionCallback += (sender, host, certs, remote, issuers) =>
             {
                 return localCert;
             };
-            m_client.SslConfiguration.ServerCertificateValidationCallback += (sender, cert, chain, errors) =>
+            m_client.SslConfiguration.ServerCertificateValidationCallback += delegate (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
             {
-                return true;
+                // Validate this is our server
+                return certificate.GetCertHashString() == "9C39BEDE53BC34F11609E6E8F8E56C0028E07213";
             };
             m_client.OnMessage += (sender, e) =>
             {

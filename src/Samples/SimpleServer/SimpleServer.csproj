@@ -25,7 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="cid.root.cert.pfx">
+    <None Update="localhost.pfx">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
@@ -41,15 +42,15 @@ namespace SimpleServer
         {
             m_logger.LogDebug("OnStarted Called");
             m_server = new WebSocketServer(m_logger, 8855, true);
-            m_server.SslConfiguration.ServerCertificate = new X509Certificate2("cid.root.cert.pfx", "secretpassword");
+            m_server.SslConfiguration.ServerCertificate = new X509Certificate2("localhost.pfx", "password");
             m_server.SslConfiguration.ClientCertificateRequired = true;
-            m_server.SslConfiguration.ClientCertificateValidationCallback += (sender, cert, chain, errors) =>
+            m_server.SslConfiguration.ClientCertificateValidationCallback += delegate (object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
             {
-                return true;
+                // Only allow our specific client
+                return certificate.GetCertHashString() == "A92F0F40ED8BF3F2CF857E9CF00A5BD6AB3184DF";
             };
 
             m_server.AddWebSocketService<ChatBehaviour>("/chat");
-
             m_server.Start();
 
             Console.WriteLine("Press Ctrl+C to exit");
@@ -69,6 +70,11 @@ namespace SimpleServer
 
     public class ChatBehaviour : WebSocketBehavior
     {
+        public ChatBehaviour()
+        {
+
+        }
+
         protected override void OnMessage(MessageEventArgs e)
         {
             var chars = e.Data.ToCharArray();
