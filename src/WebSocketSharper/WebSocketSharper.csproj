@@ -13,7 +13,7 @@
     <Description>WebSocket Client and Server library suitable for DI and Unit Testing.
 
 Based on WebSocketSharp, modified to target .NETStandard and support projects utilising DI</Description>
-    <PackageIconUrl>https://github.com/ekwus/websocketsharper/blob/master/websocketsharper_icon.png</PackageIconUrl>
+    <PackageIconUrl>https://github.com/ekwus/websocketsharper/blob/master/websocketsharper_icon.png?raw=true</PackageIconUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -30,6 +30,12 @@ Based on WebSocketSharp, modified to target .NETStandard and support projects ut
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="icon.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
