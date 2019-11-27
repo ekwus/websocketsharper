@@ -24,4 +24,4 @@ jobs:
       uses: warrenbuckley/Setup-Nuget@v1
     - name: Publish Nuget
       if: matrix.os == 'windows-latest'
-      run: nuget push .\build\Release\WebSocketSharper\*.nupkg -Source https://api.nuget.org/v3/index.json -SkipDuplicate -ApiKey ${{ secrets.NUGET_KEY }}
+      run: nuget push .\build\Release\WebSocketSharper\*.nupkg -Source https://api.nuget.org/v3/index.json -SkipDuplicate -NoSymbols -ApiKey ${{ secrets.NUGET_KEY }}
