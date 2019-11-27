@@ -1,3 +1,5 @@
+![](https://github.com/ekwus/websocketsharper/workflows/.NET%20Core/badge.svg)
+
 WebSocketSharper is a fork of sta/websocket-sharp that focuses purely on .NetCore / .NetStandard, adds unit testable friendly interfaces and adds a Reactive IObservable flow to the data streams.
 
 ## Welcome to websocket-sharper! ##
