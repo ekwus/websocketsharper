@@ -8,8 +8,12 @@
     <PackageProjectUrl>https://github.com/ekwus/websocketsharper</PackageProjectUrl>
     <PackageLicenseUrl>https://raw.githubusercontent.com/ekwus/websocketsharper/master/LICENSE.txt</PackageLicenseUrl>
     <RepositoryUrl>https://github.com/ekwus/websocketsharper</RepositoryUrl>
-    <PackageTags>websocket</PackageTags>
+    <PackageTags>websocket;</PackageTags>
     <PackageId>WebSocketSharper</PackageId>
+    <Description>WebSocket Client and Server library suitable for DI and Unit Testing.
+
+Based on WebSocketSharp, modified to target .NETStandard and support projects utilising DI</Description>
+    <PackageIconUrl>https://github.com/ekwus/websocketsharper/blob/master/websocketsharper_icon.png</PackageIconUrl>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
