@@ -1,7 +1,7 @@
-[![Build Status](https://github.com/ekwus/websocketsharper/workflows/.NET%20Core/badge.svg)]
+![Build Status](https://github.com/ekwus/websocketsharper/workflows/.NET%20Core/badge.svg)
 [![NuGet Version](https://img.shields.io/nuget/v/WebSocketSharper.svg)](https://www.nuget.org/packages?q=WebSocketSharper)
 [![Nuget Downloads](https://img.shields.io/nuget/dt/WebSocketSharper.svg)](https://www.nuget.org/packages?q=WebSockerSharper)
-[![License](https://img.shields.io/github/license/ekwus/WebSocketSharper.svg)]
+![License](https://img.shields.io/github/license/ekwus/WebSocketSharper.svg)
 
 WebSocketSharper is a fork of sta/websocket-sharp that focuses purely on .NetCore / .NetStandard, adds unit testable friendly interfaces and adds a Reactive IObservable flow to the data streams.
 
