@@ -9,6 +9,7 @@
  *
  * Copyright (c) 2009 Adam MacBeth
  * Copyright (c) 2010-2016 sta.blockhead
+ * Copyright (c) 2019 Veracity UK Ltd
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +37,7 @@
  * - Frank Razenberg <frank@zzattack.org>
  * - David Wood <dpwood@gmail.com>
  * - Liryna <liryna.stark@gmail.com>
+ * - David Ritchie <d.ritchie@ionot.com>
  */
 #endregion
 
@@ -48,6 +50,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Reactive.Subjects;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
@@ -69,8 +72,8 @@ namespace WebSocketSharper
   ///   <see href="http://tools.ietf.org/html/rfc6455">RFC 6455</see>.
   ///   </para>
   /// </remarks>
-  public class WebSocket : IDisposable
-  {
+  public class WebSocket : IDisposable, IWebSocket
+    {
     #region Private Fields
 
     private AuthenticationChallenge        _authChallenge;
@@ -120,6 +123,7 @@ namespace WebSocketSharper
     private Uri                            _uri;
     private const string                   _version = "13";
     private TimeSpan                       _waitTime;
+        private Subject<WebMessage> _onMessageReceived;
 
     #endregion
 
@@ -775,14 +779,16 @@ namespace WebSocketSharper
       }
     }
 
-    #endregion
+        public IObservable<WebMessage> MessageReceived => throw new NotImplementedException();
 
-    #region Public Events
+        #endregion
 
-    /// <summary>
-    /// Occurs when the WebSocket connection has been closed.
-    /// </summary>
-    public event EventHandler<CloseEventArgs> OnClose;
+        #region Public Events
+
+        /// <summary>
+        /// Occurs when the WebSocket connection has been closed.
+        /// </summary>
+        public event EventHandler<CloseEventArgs> OnClose;
 
     /// <summary>
     /// Occurs when the <see cref="WebSocket"/> gets an error.
@@ -1469,6 +1475,7 @@ namespace WebSocketSharper
       _messageEventQueue = new Queue<MessageEventArgs> ();
       _forMessageEventQueue = ((ICollection) _messageEventQueue).SyncRoot;
       _readyState = WebSocketState.Connecting;
+      _onMessageReceived = new Subject<WebMessage>();
     }
 
     private void message ()
@@ -1485,50 +1492,79 @@ namespace WebSocketSharper
       _message (e);
     }
 
-    private void messagec (MessageEventArgs e)
-    {
-      do {
-        try {
-          OnMessage.Emit (this, e);
+        private void messagec(MessageEventArgs e)
+        {
+            do
+            {
+                try
+                {
+                    OnMessage.Emit(this, e);
+                    switch (e.Opcode)
+                    {
+                        case Opcode.Text:
+                            _onMessageReceived.OnNext(WebMessage.TextMessage(e.Data));
+                            break;
+
+                        case Opcode.Binary:
+                            _onMessageReceived.OnNext(WebMessage.BinaryMessage(e.RawData));
+                            break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex.ToString());
+                    error("An error has occurred during an OnMessage event.", ex);
+                }
+
+                lock (_forMessageEventQueue)
+                {
+                    if (_messageEventQueue.Count == 0 || _readyState != WebSocketState.Open)
+                    {
+                        _inMessage = false;
+                        break;
+                    }
+
+                    e = _messageEventQueue.Dequeue();
+                }
+            }
+            while (true);
         }
-        catch (Exception ex) {
-          _logger.LogError (ex.ToString ());
-          error ("An error has occurred during an OnMessage event.", ex);
+
+        private void messages(MessageEventArgs e)
+        {
+            try
+            {
+                OnMessage.Emit(this, e);
+                switch (e.Opcode)
+                {
+                    case Opcode.Text:
+                        _onMessageReceived.OnNext(WebMessage.TextMessage(e.Data));
+                        break;
+
+                    case Opcode.Binary:
+                        _onMessageReceived.OnNext(WebMessage.BinaryMessage(e.RawData));
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex.ToString());
+                error("An error has occurred during an OnMessage event.", ex);
+            }
+
+            lock (_forMessageEventQueue)
+            {
+                if (_messageEventQueue.Count == 0 || _readyState != WebSocketState.Open)
+                {
+                    _inMessage = false;
+                    return;
+                }
+
+                e = _messageEventQueue.Dequeue();
+            }
+
+            ThreadPool.QueueUserWorkItem(state => messages(e));
         }
-
-        lock (_forMessageEventQueue) {
-          if (_messageEventQueue.Count == 0 || _readyState != WebSocketState.Open) {
-            _inMessage = false;
-            break;
-          }
-
-          e = _messageEventQueue.Dequeue ();
-        }
-      }
-      while (true);
-    }
-
-    private void messages (MessageEventArgs e)
-    {
-      try {
-        OnMessage.Emit (this, e);
-      }
-      catch (Exception ex) {
-        _logger.LogError (ex.ToString ());
-        error ("An error has occurred during an OnMessage event.", ex);
-      }
-
-      lock (_forMessageEventQueue) {
-        if (_messageEventQueue.Count == 0 || _readyState != WebSocketState.Open) {
-          _inMessage = false;
-          return;
-        }
-
-        e = _messageEventQueue.Dequeue ();
-      }
-
-      ThreadPool.QueueUserWorkItem (state => messages (e));
-    }
 
     private void open ()
     {

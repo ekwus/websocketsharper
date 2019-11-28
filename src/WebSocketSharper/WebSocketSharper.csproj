@@ -30,6 +30,7 @@ Based on WebSocketSharp, modified to target .NETStandard and support projects ut
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="System.Reactive" Version="4.2.0" />
   </ItemGroup>
 
   <ItemGroup>
