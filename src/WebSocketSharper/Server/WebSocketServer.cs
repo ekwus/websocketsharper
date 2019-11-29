@@ -1139,7 +1139,7 @@ namespace WebSocketSharper.Server
     }
 
         public Task AddWebSocketServiceTaskAsync<TBehaviour>(string path, Func<TBehaviour> factory)
-            where TBehaviour : WebSocketBehavior, new()
+            where TBehaviour : WebSocketBehavior
         {
             if (path == null)
                 throw new ArgumentNullException("path");
