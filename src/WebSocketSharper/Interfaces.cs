@@ -2,10 +2,19 @@
 using System.Collections.Generic;
 using System.Net.WebSockets;
 using System.Text;
+using System.Threading.Tasks;
 using WebSocketSharper.Net;
+using WebSocketSharper.Server;
 
 namespace WebSocketSharper
 {
+    public interface IWebSocketServer : IDisposable
+    {
+        Task StartTaskAsync();
+        Task AddWebSocketServiceTaskAsync<TBehaviour>(string path, Action<TBehaviour> initialise) where TBehaviour : WebSocketBehavior, new();
+        Task StopTaskAsync();
+    }
+
     public enum ReconnectionType
     {
         /// <summary>
