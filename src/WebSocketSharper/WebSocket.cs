@@ -54,6 +54,7 @@ using System.Reactive.Subjects;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using WebSocketSharper.Net;
 using WebSocketSharper.Net.WebSockets;
 
@@ -2899,19 +2900,63 @@ namespace WebSocketSharper
       close ((ushort) code, reason);
     }
 
-    /// <summary>
-    /// Closes the connection asynchronously.
-    /// </summary>
-    /// <remarks>
-    ///   <para>
-    ///   This method does not wait for the close to be complete.
-    ///   </para>
-    ///   <para>
-    ///   This method does nothing if the current state of the connection is
-    ///   Closing or Closed.
-    ///   </para>
-    /// </remarks>
-    public void CloseAsync ()
+        public Task CloseTaskAsync(CloseStatusCode code, string reason)
+        {
+            if (_client && code == CloseStatusCode.ServerError)
+            {
+                var msg = "ServerError cannot be used.";
+                throw new ArgumentException(msg, "code");
+            }
+
+            if (!_client && code == CloseStatusCode.MandatoryExtension)
+            {
+                var msg = "MandatoryExtension cannot be used.";
+                throw new ArgumentException(msg, "code");
+            }
+
+            if (reason.IsNullOrEmpty())
+            {
+                reason = String.Empty;
+            }
+
+            if (code == CloseStatusCode.NoStatus)
+            {
+                var msg = "NoStatus cannot be used.";
+                throw new ArgumentException(msg, "code");
+            }
+
+            byte[] bytes;
+            if (!reason.TryGetUTF8EncodedBytes(out bytes))
+            {
+                var msg = "It could not be UTF-8-encoded.";
+                throw new ArgumentException(msg, "reason");
+            }
+
+            if (bytes.Length > 123)
+            {
+                var msg = "Its size is greater than 123 bytes.";
+                throw new ArgumentOutOfRangeException("reason", msg);
+            }
+
+            return Task.Run(() =>
+            {
+                close((ushort)code, reason);
+            });
+        }
+
+        /// <summary>
+        /// Closes the connection asynchronously.
+        /// </summary>
+        /// <remarks>
+        ///   <para>
+        ///   This method does not wait for the close to be complete.
+        ///   </para>
+        ///   <para>
+        ///   This method does nothing if the current state of the connection is
+        ///   Closing or Closed.
+        ///   </para>
+        /// </remarks>
+        public void CloseAsync ()
     {
       closeAsync (1005, String.Empty);
     }
@@ -3272,36 +3317,65 @@ namespace WebSocketSharper
         open ();
     }
 
-    /// <summary>
-    /// Establishes a connection asynchronously.
-    /// </summary>
-    /// <remarks>
-    ///   <para>
-    ///   This method does not wait for the connect process to be complete.
-    ///   </para>
-    ///   <para>
-    ///   This method does nothing if the connection has already been
-    ///   established.
-    ///   </para>
-    /// </remarks>
-    /// <exception cref="InvalidOperationException">
-    ///   <para>
-    ///   This instance is not a client.
-    ///   </para>
-    ///   <para>
-    ///   -or-
-    ///   </para>
-    ///   <para>
-    ///   The close process is in progress.
-    ///   </para>
-    ///   <para>
-    ///   -or-
-    ///   </para>
-    ///   <para>
-    ///   A series of reconnecting has failed.
-    ///   </para>
-    /// </exception>
-    public void ConnectAsync ()
+        public Task ConnectTaskAsync()
+        {
+            if (!_client)
+            {
+                var msg = "This instance is not a client.";
+                throw new InvalidOperationException(msg);
+            }
+
+            if (_readyState == WebSocketState.Closing)
+            {
+                var msg = "The close process is in progress.";
+                throw new InvalidOperationException(msg);
+            }
+
+            if (_retryCountForConnect > _maxRetryCountForConnect)
+            {
+                var msg = "A series of reconnecting has failed.";
+                throw new InvalidOperationException(msg);
+            }
+
+            return Task.Run(() =>
+            {
+                if (connect())
+                {
+                    open();
+                }
+            });
+        }
+
+        /// <summary>
+        /// Establishes a connection asynchronously.
+        /// </summary>
+        /// <remarks>
+        ///   <para>
+        ///   This method does not wait for the connect process to be complete.
+        ///   </para>
+        ///   <para>
+        ///   This method does nothing if the connection has already been
+        ///   established.
+        ///   </para>
+        /// </remarks>
+        /// <exception cref="InvalidOperationException">
+        ///   <para>
+        ///   This instance is not a client.
+        ///   </para>
+        ///   <para>
+        ///   -or-
+        ///   </para>
+        ///   <para>
+        ///   The close process is in progress.
+        ///   </para>
+        ///   <para>
+        ///   -or-
+        ///   </para>
+        ///   <para>
+        ///   A series of reconnecting has failed.
+        ///   </para>
+        /// </exception>
+        public void ConnectAsync ()
     {
       if (!_client) {
         var msg = "This instance is not a client.";
@@ -3381,19 +3455,45 @@ namespace WebSocketSharper
       return ping (bytes);
     }
 
-    /// <summary>
-    /// Sends the specified data using the WebSocket connection.
-    /// </summary>
-    /// <param name="data">
-    /// An array of <see cref="byte"/> that represents the binary data to send.
-    /// </param>
-    /// <exception cref="InvalidOperationException">
-    /// The current state of the connection is not Open.
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    /// <paramref name="data"/> is <see langword="null"/>.
-    /// </exception>
-    public void Send (byte[] data)
+        public Task<bool> PingTaskAsync(string message = null)
+        {
+            byte[] bytes;
+            if (message.IsNullOrEmpty())
+            {
+                bytes = EmptyBytes;
+            }
+
+            if (!message.TryGetUTF8EncodedBytes(out bytes))
+            {
+                var msg = "It could not be UTF-8-encoded.";
+                throw new ArgumentException(msg, "message");
+            }
+
+            if (bytes.Length > 125)
+            {
+                var msg = "Its size is greater than 125 bytes.";
+                throw new ArgumentOutOfRangeException("message", msg);
+            }
+
+            return Task.Run<bool>(() =>
+            {
+                return ping(bytes);
+            });
+        }
+
+        /// <summary>
+        /// Sends the specified data using the WebSocket connection.
+        /// </summary>
+        /// <param name="data">
+        /// An array of <see cref="byte"/> that represents the binary data to send.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The current state of the connection is not Open.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="data"/> is <see langword="null"/>.
+        /// </exception>
+        public void Send (byte[] data)
     {
       if (_readyState != WebSocketState.Open) {
         var msg = "The current state of the connection is not Open.";
@@ -3406,35 +3506,52 @@ namespace WebSocketSharper
       send (Opcode.Binary, new MemoryStream (data));
     }
 
-    /// <summary>
-    /// Sends the specified file using the WebSocket connection.
-    /// </summary>
-    /// <param name="fileInfo">
-    ///   <para>
-    ///   A <see cref="FileInfo"/> that specifies the file to send.
-    ///   </para>
-    ///   <para>
-    ///   The file is sent as the binary data.
-    ///   </para>
-    /// </param>
-    /// <exception cref="InvalidOperationException">
-    /// The current state of the connection is not Open.
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    /// <paramref name="fileInfo"/> is <see langword="null"/>.
-    /// </exception>
-    /// <exception cref="ArgumentException">
-    ///   <para>
-    ///   The file does not exist.
-    ///   </para>
-    ///   <para>
-    ///   -or-
-    ///   </para>
-    ///   <para>
-    ///   The file could not be opened.
-    ///   </para>
-    /// </exception>
-    public void Send (FileInfo fileInfo)
+        public Task SendTaskAsync(byte[] data)
+        {
+            if (_readyState != WebSocketState.Open)
+            {
+                var msg = "The current state of the connection is not Open.";
+                throw new InvalidOperationException(msg);
+            }
+
+            if (data == null)
+                throw new ArgumentNullException("data");
+
+            return Task.Run(() =>
+            {
+                send(Opcode.Binary, new MemoryStream(data));
+            });
+        }
+
+        /// <summary>
+        /// Sends the specified file using the WebSocket connection.
+        /// </summary>
+        /// <param name="fileInfo">
+        ///   <para>
+        ///   A <see cref="FileInfo"/> that specifies the file to send.
+        ///   </para>
+        ///   <para>
+        ///   The file is sent as the binary data.
+        ///   </para>
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The current state of the connection is not Open.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="fileInfo"/> is <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        ///   <para>
+        ///   The file does not exist.
+        ///   </para>
+        ///   <para>
+        ///   -or-
+        ///   </para>
+        ///   <para>
+        ///   The file could not be opened.
+        ///   </para>
+        /// </exception>
+        public void Send (FileInfo fileInfo)
     {
       if (_readyState != WebSocketState.Open) {
         var msg = "The current state of the connection is not Open.";
@@ -3492,44 +3609,67 @@ namespace WebSocketSharper
       send (Opcode.Text, new MemoryStream (bytes));
     }
 
-    /// <summary>
-    /// Sends the data from the specified stream using the WebSocket connection.
-    /// </summary>
-    /// <param name="stream">
-    ///   <para>
-    ///   A <see cref="Stream"/> instance from which to read the data to send.
-    ///   </para>
-    ///   <para>
-    ///   The data is sent as the binary data.
-    ///   </para>
-    /// </param>
-    /// <param name="length">
-    /// An <see cref="int"/> that specifies the number of bytes to send.
-    /// </param>
-    /// <exception cref="InvalidOperationException">
-    /// The current state of the connection is not Open.
-    /// </exception>
-    /// <exception cref="ArgumentNullException">
-    /// <paramref name="stream"/> is <see langword="null"/>.
-    /// </exception>
-    /// <exception cref="ArgumentException">
-    ///   <para>
-    ///   <paramref name="stream"/> cannot be read.
-    ///   </para>
-    ///   <para>
-    ///   -or-
-    ///   </para>
-    ///   <para>
-    ///   <paramref name="length"/> is less than 1.
-    ///   </para>
-    ///   <para>
-    ///   -or-
-    ///   </para>
-    ///   <para>
-    ///   No data could be read from <paramref name="stream"/>.
-    ///   </para>
-    /// </exception>
-    public void Send (Stream stream, int length)
+        public Task SendTaskAsync(string data)
+        {
+            if (_readyState != WebSocketState.Open)
+            {
+                var msg = "The current state of the connection is not Open.";
+                throw new InvalidOperationException(msg);
+            }
+
+            if (data == null)
+                throw new ArgumentNullException("data");
+
+            byte[] bytes;
+            if (!data.TryGetUTF8EncodedBytes(out bytes))
+            {
+                var msg = "It could not be UTF-8-encoded.";
+                throw new ArgumentException(msg, "data");
+            }
+
+            return Task.Run(() =>
+            {
+                send(Opcode.Text, new MemoryStream(bytes));
+            });
+        }
+        /// <summary>
+        /// Sends the data from the specified stream using the WebSocket connection.
+        /// </summary>
+        /// <param name="stream">
+        ///   <para>
+        ///   A <see cref="Stream"/> instance from which to read the data to send.
+        ///   </para>
+        ///   <para>
+        ///   The data is sent as the binary data.
+        ///   </para>
+        /// </param>
+        /// <param name="length">
+        /// An <see cref="int"/> that specifies the number of bytes to send.
+        /// </param>
+        /// <exception cref="InvalidOperationException">
+        /// The current state of the connection is not Open.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">
+        /// <paramref name="stream"/> is <see langword="null"/>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        ///   <para>
+        ///   <paramref name="stream"/> cannot be read.
+        ///   </para>
+        ///   <para>
+        ///   -or-
+        ///   </para>
+        ///   <para>
+        ///   <paramref name="length"/> is less than 1.
+        ///   </para>
+        ///   <para>
+        ///   -or-
+        ///   </para>
+        ///   <para>
+        ///   No data could be read from <paramref name="stream"/>.
+        ///   </para>
+        /// </exception>
+        public void Send (Stream stream, int length)
     {
       if (_readyState != WebSocketState.Open) {
         var msg = "The current state of the connection is not Open.";
