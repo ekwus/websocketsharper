@@ -44,6 +44,7 @@ using System.Security.Cryptography.X509Certificates;
 using System.Security.Principal;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using WebSocketSharper.Net;
 using WebSocketSharper.Net.WebSockets;
 
@@ -55,7 +56,7 @@ namespace WebSocketSharper.Server
   /// <remarks>
   /// This class can provide multiple WebSocket services.
   /// </remarks>
-  public class WebSocketServer
+  public class WebSocketServer : IWebSocketServer
   {
     #region Private Fields
 
@@ -1262,6 +1263,15 @@ namespace WebSocketSharper.Server
       _services.AddService<TBehaviorWithNew> (path, initializer);
     }
 
+        public Task AddWebSocketServiceTaskAsync<TBehaviour>(string path, Action<TBehaviour> initialise)
+            where TBehaviour : WebSocketBehavior, new()
+        {
+            return Task.Run(() =>
+            {
+                _services.AddService<TBehaviour>(path, initialise);
+            });
+        }
+
     /// <summary>
     /// Removes a WebSocket service with the specified path.
     /// </summary>
@@ -1341,6 +1351,25 @@ namespace WebSocketSharper.Server
       start (sslConfig);
     }
 
+        public Task StartTaskAsync()
+        {
+            ServerSslConfiguration sslConfig = null;
+
+            if (_secure)
+            {
+                sslConfig = new ServerSslConfiguration(getSslConfiguration());
+
+                string msg;
+                if (!checkSslConfiguration(sslConfig, out msg))
+                    throw new InvalidOperationException(msg);
+            }
+
+            return Task.Run(() =>
+            {
+                start(sslConfig);
+            });
+        }
+
     /// <summary>
     /// Stops receiving incoming handshake requests.
     /// </summary>
@@ -1351,6 +1380,15 @@ namespace WebSocketSharper.Server
     {
       stop (1001, String.Empty);
     }
+
+        public Task StopTaskAsync()
+        {
+            return Task.Run(() =>
+            {
+                stop(1001, String.Empty);
+            });
+        }
+
 
     /// <summary>
     /// Stops receiving incoming handshake requests and closes each connection
@@ -1515,5 +1553,32 @@ namespace WebSocketSharper.Server
     }
 
     #endregion
-  }
+
+        #region Disposal
+
+        private bool m_disposed;
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (m_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                Stop();
+            }
+
+            m_disposed = true;
+        }
+
+        #endregion
+    }
 }
