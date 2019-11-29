@@ -12,6 +12,7 @@ namespace WebSocketSharper
     {
         Task StartTaskAsync();
         Task AddWebSocketServiceTaskAsync<TBehaviour>(string path, Action<TBehaviour> initialise) where TBehaviour : WebSocketBehavior, new();
+        Task AddWebSocketServiceTaskAsync<TBehaviour>(string path, Func<TBehaviour> factory) where TBehaviour : WebSocketBehavior, new();
         Task StopTaskAsync();
     }
 

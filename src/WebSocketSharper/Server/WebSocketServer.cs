@@ -1138,6 +1138,33 @@ namespace WebSocketSharper.Server
       _services.Add<TBehavior> (path, creator);
     }
 
+        public Task AddWebSocketServiceTaskAsync<TBehaviour>(string path, Func<TBehaviour> factory)
+            where TBehaviour : WebSocketBehavior, new()
+        {
+            if (path == null)
+                throw new ArgumentNullException("path");
+
+            if (factory == null)
+                throw new ArgumentNullException("factory");
+
+            if (path.Length == 0)
+                throw new ArgumentException("An empty string.", "path");
+
+            if (path[0] != '/')
+                throw new ArgumentException("Not an absolute path.", "path");
+
+            if (path.IndexOfAny(new[] { '?', '#' }) > -1)
+            {
+                var msg = "It includes either or both query and fragment components.";
+                throw new ArgumentException(msg, "path");
+            }
+
+            return Task.Run(() =>
+            {
+                _services.Add<TBehaviour>(path, factory);
+            });
+        }
+
     /// <summary>
     /// Adds a WebSocket service with the specified behavior and path.
     /// </summary>
