@@ -4,7 +4,7 @@
 
 WebSocketSharper is a fork of sta/websocket-sharp that focuses purely on .NetCore / .NetStandard, adds unit testable friendly interfaces and adds a Reactive IObservable flow to the data streams.
 
-websocket-sharp is provided under [The MIT License].
+websocket-sharp is provided under [The MIT License]. Copyright is retained by the relevant authors and contributors.
 
 ## Warning ##
 
