@@ -43,7 +43,7 @@ namespace SimpleClient
             m_logger.LogDebug("OnStarted Called");
             m_running = true;
 
-            m_client = new WebSocket(m_logger, "wss://localhost:8855/chat");
+            m_client = new WebSocket(m_logger, "wss://localhost:8855/chat", false);
             m_client.SslConfiguration.ClientCertificates = new X509CertificateCollection();
             var localCert = new X509Certificate2("client.pfx", "password");
             m_client.SslConfiguration.ClientCertificates.Add(localCert);

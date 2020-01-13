@@ -124,6 +124,8 @@ namespace WebSocketSharper
     private Uri                            _uri;
     private const string                   _version = "13";
     private TimeSpan                       _waitTime;
+        private TimeSpan _reconnectDelay;
+        private bool _alwaysReconnect;
         private Subject<WebMessage> _onMessageReceived;
 
     #endregion
@@ -258,7 +260,7 @@ namespace WebSocketSharper
     ///   <paramref name="protocols"/> contains a value twice.
     ///   </para>
     /// </exception>
-    public WebSocket (ILogger logger, string url, params string[] protocols)
+    public WebSocket (ILogger logger, string url, bool alwaysReconnect, params string[] protocols)
     {
       if (url == null)
         throw new ArgumentNullException ("url");
@@ -283,6 +285,8 @@ namespace WebSocketSharper
       _message = messagec;
       _secure = _uri.Scheme == "wss";
       _waitTime = TimeSpan.FromSeconds (5);
+            _alwaysReconnect = alwaysReconnect;
+            _reconnectDelay = TimeSpan.FromSeconds(10);
 
       init ();
     }
@@ -336,6 +340,45 @@ namespace WebSocketSharper
 
     #region Public Properties
 
+        public TimeSpan ReconnectDelay
+        {
+            get { return _reconnectDelay; }
+            set
+            {
+                string msg = null;
+
+                if (!_client)
+                {
+                    msg = "This instance is not a client.";
+                    throw new InvalidOperationException(msg);
+                }
+
+                if (!canSet(out msg))
+                {
+                    _logger.LogWarning(msg);
+                    return;
+                }
+
+                lock (_forState)
+                {
+                    if (!canSet(out msg))
+                    {
+                        _logger.LogWarning(msg);
+                        return;
+                    }
+
+                    _reconnectDelay = value;
+                }
+            }
+        }
+        /// <summary>
+        /// Gets wether this socket was create with Always Reconnect behaviour enabled
+        /// </summary>
+        public bool AlwaysReconnect
+        {
+            get { return _alwaysReconnect; }
+        }
+ 
     /// <summary>
     /// Gets or sets the compression method used to compress a message.
     /// </summary>
@@ -1090,8 +1133,24 @@ namespace WebSocketSharper
 
       return true;
     }
+        private void disableReconnect(CloseStatusCode code)
+        {
+            disableReconnect((ushort)code);
+        }
 
-    private void close (ushort code, string reason)
+        private void disableReconnect(ushort code)
+        {
+            if (
+                (code == (ushort)CloseStatusCode.Normal) ||
+                (code == (ushort)CloseStatusCode.NoStatus)
+                )
+            {
+                // Disable reconnecting when closing normally
+                _alwaysReconnect = false;
+            }
+        }
+
+        private void close (ushort code, string reason)
     {
       if (_readyState == WebSocketState.Closing) {
         _logger.LogInformation ("The closing is already in progress.");
@@ -1151,6 +1210,13 @@ namespace WebSocketSharper
         _logger.LogError (ex.Message);
         _logger.LogDebug (ex.ToString ());
       }
+
+            if (_alwaysReconnect)
+            {
+                Task.Delay(ReconnectDelay).ContinueWith((t)=> {
+                    ConnectTaskAsync();
+                });
+            }
     }
 
     private void closeAsync (ushort code, string reason)
@@ -2605,7 +2671,9 @@ namespace WebSocketSharper
     /// </remarks>
     public void Close ()
     {
-      close (1005, String.Empty);
+            var code = (ushort)CloseStatusCode.NoStatus;
+            disableReconnect(code);
+            close(code, String.Empty);
     }
 
     /// <summary>
@@ -2659,7 +2727,9 @@ namespace WebSocketSharper
         throw new ArgumentException (msg, "code");
       }
 
-      close (code, String.Empty);
+            disableReconnect(code);
+
+            close(code, String.Empty);
     }
 
     /// <summary>
@@ -2704,7 +2774,9 @@ namespace WebSocketSharper
         throw new ArgumentException (msg, "code");
       }
 
-      close ((ushort) code, String.Empty);
+            disableReconnect(code);
+
+            close((ushort) code, String.Empty);
     }
 
     /// <summary>
@@ -2807,7 +2879,9 @@ namespace WebSocketSharper
         throw new ArgumentOutOfRangeException ("reason", msg);
       }
 
-      close (code, reason);
+            disableReconnect(code);
+
+            close(code, reason);
     }
 
     /// <summary>
@@ -2897,7 +2971,9 @@ namespace WebSocketSharper
         throw new ArgumentOutOfRangeException ("reason", msg);
       }
 
-      close ((ushort) code, reason);
+            disableReconnect(code);
+
+            close((ushort) code, reason);
     }
 
         public Task CloseTaskAsync(CloseStatusCode code, string reason)
@@ -2938,6 +3014,8 @@ namespace WebSocketSharper
                 throw new ArgumentOutOfRangeException("reason", msg);
             }
 
+            disableReconnect(code);
+
             return Task.Run(() =>
             {
                 close((ushort)code, reason);
@@ -2958,7 +3036,9 @@ namespace WebSocketSharper
         /// </remarks>
         public void CloseAsync ()
     {
-      closeAsync (1005, String.Empty);
+            var code = (ushort)CloseStatusCode.NoStatus;
+            disableReconnect(code);
+            closeAsync(code, String.Empty);
     }
 
     /// <summary>
@@ -3017,7 +3097,8 @@ namespace WebSocketSharper
         throw new ArgumentException (msg, "code");
       }
 
-      closeAsync (code, String.Empty);
+            disableReconnect(code);
+            closeAsync(code, String.Empty);
     }
 
     /// <summary>
@@ -3067,7 +3148,8 @@ namespace WebSocketSharper
         throw new ArgumentException (msg, "code");
       }
 
-      closeAsync ((ushort) code, String.Empty);
+            disableReconnect(code);
+            closeAsync((ushort)code, String.Empty);
     }
 
     /// <summary>
@@ -3175,7 +3257,8 @@ namespace WebSocketSharper
         throw new ArgumentOutOfRangeException ("reason", msg);
       }
 
-      closeAsync (code, reason);
+            disableReconnect(code);
+            closeAsync(code, reason);
     }
 
     /// <summary>
@@ -3270,7 +3353,8 @@ namespace WebSocketSharper
         throw new ArgumentOutOfRangeException ("reason", msg);
       }
 
-      closeAsync ((ushort) code, reason);
+            disableReconnect(code);
+            closeAsync((ushort)code, reason);
     }
 
     /// <summary>
@@ -3339,10 +3423,14 @@ namespace WebSocketSharper
 
             return Task.Run(() =>
             {
-                if (connect())
+                bool connected = connect();
+                while (!connected && _alwaysReconnect)
                 {
-                    open();
+                    Task.Delay(ReconnectDelay);
+                    connected = connect();
                 }
+
+                open();
             });
         }
 
