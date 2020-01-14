@@ -50,6 +50,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Security.Cryptography;
 using System.Text;
@@ -823,7 +824,7 @@ namespace WebSocketSharper
       }
     }
 
-        public IObservable<WebMessage> MessageReceived => throw new NotImplementedException();
+        public IObservable<WebMessage> MessageReceived => _onMessageReceived.AsObservable();
 
         #endregion
 

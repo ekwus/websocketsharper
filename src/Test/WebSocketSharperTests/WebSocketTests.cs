@@ -49,6 +49,34 @@ namespace WebSocketSharpererTests
             wss.Stop();
         }
 
+
+        [Fact]
+        public void TestWithObservableMessages()
+        {
+            var gate = new TestGate<CheckPoint>();
+            var wss = new WebSocketServer(LOG, 8844);
+            wss.AddWebSocketService<WebSocketTestBehaviour>("/test");
+            wss.Start();
+
+
+            using (var wsc = new WebSocket(LOG, "ws://localhost:8844/test", true))
+            {
+                wsc.MessageReceived.Subscribe((m) =>
+                {
+                    gate.Set(CheckPoint.ClientReceived);
+                });
+
+                wsc.Connect();
+
+                wsc.Send("Check Observable route works!");
+
+                gate.AssertWaitFor(CheckPoint.ClientReceived, 5000);
+            }
+
+
+            wss.Stop();
+        }
+
         [Fact]
         public void TestConnectClientFirst()
         {
