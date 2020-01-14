@@ -3423,11 +3423,13 @@ namespace WebSocketSharper
 
             return Task.Run(() =>
             {
+                int retries = 10;
                 bool connected = connect();
-                while (!connected && _alwaysReconnect)
+                while (!connected && _alwaysReconnect && (retries > 0))
                 {
                     Task.Delay(ReconnectDelay);
                     connected = connect();
+                    retries--;
                 }
 
                 open();
