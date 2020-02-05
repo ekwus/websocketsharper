@@ -2220,7 +2220,6 @@ namespace WebSocketSharper
     {
       if (_proxyUri != null) {
         _tcpClient = new TcpClient (_proxyUri.DnsSafeHost, _proxyUri.Port);
-        _tcpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         _stream = _tcpClient.GetStream ();
         sendProxyConnectRequest ();
       }
