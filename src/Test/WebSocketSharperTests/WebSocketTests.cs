@@ -5,6 +5,7 @@ using WebSocketSharper;
 using WebSocketSharper.Server;
 using Xunit;
 using Xunit.Abstractions;
+using Microsoft.Extensions.Logging;
 
 namespace WebSocketSharpererTests
 {
@@ -124,7 +125,7 @@ namespace WebSocketSharpererTests
 
             wsc.ConnectTaskAsync();
 
-            Thread.Sleep(10000);
+            Thread.Sleep(3000);
 
             // Create server
             var wss = new WebSocketServer(LOG, 8844);
@@ -138,7 +139,7 @@ namespace WebSocketSharpererTests
             gate.AssertWaitFor(CheckPoint.ClientReceived, 5000);
 
             wss.Stop();
-            Thread.Sleep(10000);
+            Thread.Sleep(3000);
 
             // Create a second server
             var wss2 = new WebSocketServer(LOG, 8844);

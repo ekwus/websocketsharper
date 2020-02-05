@@ -1012,6 +1012,7 @@ namespace WebSocketSharper.Server
     private void stopReceiving (int millisecondsTimeout)
     {
       try {
+        _listener.Server.Shutdown(SocketShutdown.Both);
         _listener.Stop ();
       }
       catch (Exception ex) {

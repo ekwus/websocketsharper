@@ -2220,6 +2220,7 @@ namespace WebSocketSharper
     {
       if (_proxyUri != null) {
         _tcpClient = new TcpClient (_proxyUri.DnsSafeHost, _proxyUri.Port);
+        _tcpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
         _stream = _tcpClient.GetStream ();
         sendProxyConnectRequest ();
       }
@@ -3422,13 +3423,13 @@ namespace WebSocketSharper
                 throw new InvalidOperationException(msg);
             }
 
-            return Task.Run(() =>
+            return Task.Run(async () =>
             {
                 int retries = 10;
                 bool connected = connect();
                 while (!connected && _alwaysReconnect && (retries > 0))
                 {
-                    Task.Delay(ReconnectDelay);
+                    await Task.Delay(ReconnectDelay);
                     connected = connect();
                     retries--;
                 }
