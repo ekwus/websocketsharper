@@ -1245,10 +1245,8 @@ namespace WebSocketSharper
       PayloadData payloadData, bool send, bool receive, bool received
     )
     {
-      Action<PayloadData, bool, bool, bool> closer = close;
-      closer.BeginInvoke (
-        payloadData, send, receive, received, ar => closer.EndInvoke (ar), null
-      );
+
+            Task.Run(() => close(payloadData, send, receive, received));
     }
 
     private bool closeHandshake (byte[] frameAsBytes, bool receive, bool received)
@@ -1557,7 +1555,7 @@ namespace WebSocketSharper
         e = _messageEventQueue.Dequeue ();
       }
 
-      _message (e);
+            Task.Run(() => _message(e));
     }
 
         private void messagec(MessageEventArgs e)
@@ -1656,7 +1654,7 @@ namespace WebSocketSharper
         e = _messageEventQueue.Dequeue ();
       }
 
-      _message.BeginInvoke (e, ar => _message.EndInvoke (ar), null);
+            Task.Run(() => messages(e));
     }
 
     private bool ping (byte[] data)
@@ -2056,26 +2054,22 @@ namespace WebSocketSharper
 
     private void sendAsync (Opcode opcode, Stream stream, Action<bool> completed)
     {
-      Func<Opcode, Stream, bool> sender = send;
-      sender.BeginInvoke (
-        opcode,
-        stream,
-        ar => {
-          try {
-            var sent = sender.EndInvoke (ar);
-            if (completed != null)
-              completed (sent);
-          }
-          catch (Exception ex) {
-            _logger.LogError (ex.ToString ());
-            error (
-              "An error has occurred during the callback for an async send.",
-              ex
-            );
-          }
-        },
-        null
-      );
+            Task.Run(() =>
+            {
+                try
+                {
+                    var sent = send(opcode, stream);
+                    completed?.Invoke(sent);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex.ToString());
+                    error(
+                      "An error has occurred during the callback for an async send.",
+                      ex
+                    );
+                }
+            });
     }
 
     private bool sendBytes (byte[] bytes)
@@ -2653,14 +2647,13 @@ namespace WebSocketSharper
         throw new InvalidOperationException (msg);
       }
 
-      Func<bool> acceptor = accept;
-      acceptor.BeginInvoke (
-        ar => {
-          if (acceptor.EndInvoke (ar))
-            open ();
-        },
-        null
-      );
+            Task.Run(() =>
+            {
+                if (accept())
+                {
+                    open();
+                }
+            });
     }
 
     /// <summary>
@@ -3483,14 +3476,13 @@ namespace WebSocketSharper
         throw new InvalidOperationException (msg);
       }
 
-      Func<bool> connector = connect;
-      connector.BeginInvoke (
-        ar => {
-          if (connector.EndInvoke (ar))
-            open ();
-        },
-        null
-      );
+            Task.Run(() =>
+            {
+                if (connect())
+                {
+                    open();
+                }
+            });
     }
 
     /// <summary>
