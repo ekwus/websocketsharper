@@ -24,7 +24,7 @@ jobs:
 #      run: dotnet test websocket-sharper.sln --configuration Release
     - name: Install nuget
       if: matrix.os == 'windows-latest'
-      uses: actions/setup-nuget@v1
+      uses: nuget/setup-nuget@v1
     - name: Publish Nuget
       if: matrix.os == 'windows-latest'
       run: nuget push .\build\Release\WebSocketSharper\*.nupkg -Source https://api.nuget.org/v3/index.json -SkipDuplicate -NoSymbols -ApiKey ${{ secrets.NUGET_KEY }}
