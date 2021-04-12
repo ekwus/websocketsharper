@@ -14,6 +14,7 @@ namespace WebSocketSharper
         Task AddWebSocketServiceTaskAsync<TBehaviour>(string path, Action<TBehaviour> initialise) where TBehaviour : WebSocketBehavior, new();
         Task AddWebSocketServiceTaskAsync<TBehaviour>(string path, Func<TBehaviour> factory) where TBehaviour : WebSocketBehavior;
         Task StopTaskAsync();
+        bool AllowForwardedRequest { get; set; }
     }
 
     public enum ReconnectionType
