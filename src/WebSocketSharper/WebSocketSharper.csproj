@@ -26,7 +26,7 @@ Based on WebSocketSharp, modified to target .NETStandard and support projects ut
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="3.0.1" />
-    <PackageReference Include="Nerdbank.GitVersioning" Version="3.0.28">
+    <PackageReference Include="Nerdbank.GitVersioning" Version="3.4.194">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
