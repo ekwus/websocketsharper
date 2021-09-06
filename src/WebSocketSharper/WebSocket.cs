@@ -1654,7 +1654,7 @@ namespace WebSocketSharper
         e = _messageEventQueue.Dequeue ();
       }
 
-            Task.Run(() => messages(e));
+          Task.Run(() => messages(e));
     }
 
     private bool ping (byte[] data)
@@ -3417,13 +3417,11 @@ namespace WebSocketSharper
 
             return Task.Run(async () =>
             {
-                int retries = 10;
                 bool connected = connect();
-                while (!connected && _alwaysReconnect && (retries > 0))
+                while (!connected && _alwaysReconnect)
                 {
                     await Task.Delay(ReconnectDelay);
                     connected = connect();
-                    retries--;
                 }
 
                 open();
