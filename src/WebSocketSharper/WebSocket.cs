@@ -1299,6 +1299,8 @@ namespace WebSocketSharper
     // As client
     private bool connect ()
     {
+      _logger.LogInformation($"Websock: connecting, retry {_retryCountForConnect}...");
+
       if (_readyState == WebSocketState.Open) {
         var msg = "The connection has already been established.";
         _logger.LogWarning (msg);
@@ -1324,7 +1326,7 @@ namespace WebSocketSharper
           return false;
         }
 
-        if (_retryCountForConnect > _maxRetryCountForConnect) {
+        if ((_retryCountForConnect > _maxRetryCountForConnect) && !_alwaysReconnect) {
           var msg = "An opportunity for reconnecting has been lost.";
           _logger.LogError (msg);
 
@@ -1654,7 +1656,7 @@ namespace WebSocketSharper
         e = _messageEventQueue.Dequeue ();
       }
 
-            Task.Run(() => messages(e));
+        Task.Run(() => messages(e));
     }
 
     private bool ping (byte[] data)
@@ -3409,24 +3411,21 @@ namespace WebSocketSharper
                 throw new InvalidOperationException(msg);
             }
 
-            if (_retryCountForConnect > _maxRetryCountForConnect)
+            if ((_retryCountForConnect > _maxRetryCountForConnect) && !_alwaysReconnect)
             {
                 var msg = "A series of reconnecting has failed.";
                 throw new InvalidOperationException(msg);
             }
 
-            return Task.Run(async () =>
+            return Task.Run(() =>
             {
-                int retries = 10;
-                bool connected = connect();
-                while (!connected && _alwaysReconnect && (retries > 0))
+                if (connect())
                 {
-                    await Task.Delay(ReconnectDelay);
-                    connected = connect();
-                    retries--;
+                    open();
                 }
 
-                open();
+                // Note: if doesn't connect successfully, then "close" is called
+                // In case where _alwaysReconnect is true then "close" will force a further attempt to make the connection.
             });
         }
 
