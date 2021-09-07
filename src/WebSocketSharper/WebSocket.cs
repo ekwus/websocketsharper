@@ -1326,7 +1326,7 @@ namespace WebSocketSharper
           return false;
         }
 
-        if ( (_retryCountForConnect > _maxRetryCountForConnect) && !_alwaysReconnect) {
+        if ((_retryCountForConnect > _maxRetryCountForConnect) && !_alwaysReconnect) {
           var msg = "An opportunity for reconnecting has been lost.";
           _logger.LogError (msg);
 
@@ -1656,7 +1656,7 @@ namespace WebSocketSharper
         e = _messageEventQueue.Dequeue ();
       }
 
-          Task.Run(() => messages(e));
+        Task.Run(() => messages(e));
     }
 
     private bool ping (byte[] data)
@@ -3419,8 +3419,7 @@ namespace WebSocketSharper
 
             return Task.Run(() =>
             {
-                bool connected = connect();
-                if (connected)
+                if (connect())
                 {
                     open();
                 }
