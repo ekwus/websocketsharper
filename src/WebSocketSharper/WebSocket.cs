@@ -3424,8 +3424,24 @@ namespace WebSocketSharper
                     open();
                 }
 
-                // Note: if doesn't connect successfully, then "close" is called
-                // In case where _alwaysReconnect is true then "close" will force a further attempt to make the connection.
+                bool isAlive = true;
+
+                // Note: if doesn't connect successfully, or connection is lost, then "close" is called
+                // In case where _alwaysReconnect is true then "close" itself forces a further attempt to make the connection.
+                while (_alwaysReconnect && (isAlive = IsAlive))
+                {
+                  //
+                  // Note: decision to use Thread.Sleep rather than Task.Delay, as not requiring async operation
+                  //
+                  Thread.Sleep(ReconnectDelay); // Use the reconnect delay (default is 10 seconds)
+                  _logger.LogInformation("WS: Do keep-alive ping...");
+                }
+
+                if (isAlive == false)
+                {
+                  _logger.LogWarning("WS: No response to keep-alive ping, closing...");
+                  close((ushort) CloseStatusCode.NoStatus, "No response to keep-alive ping.");
+                }
             });
         }
 
